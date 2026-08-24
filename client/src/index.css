@@ -1,0 +1,198 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+/* ─── Google Fonts ─────────────────────────────────────────────────────────── */
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Source+Sans+3:wght@400;500;600&display=swap');
+
+/* ─── Theme Tokens ─────────────────────────────────────────────────────────── */
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+}
+
+/* ─── Light Theme (Arctic) ─────────────────────────────────────────────────── */
+:root {
+  --radius: 0.625rem;
+  --background: oklch(0.978 0.004 264);
+  --foreground: oklch(0.18 0.02 264);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.02 264);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.02 264);
+  --primary: oklch(0.488 0.243 264.376);
+  --primary-foreground: oklch(0.98 0.01 264);
+  --secondary: oklch(0.94 0.01 264);
+  --secondary-foreground: oklch(0.3 0.02 264);
+  --muted: oklch(0.94 0.01 264);
+  --muted-foreground: oklch(0.55 0.02 264);
+  --accent: oklch(0.94 0.01 264);
+  --accent-foreground: oklch(0.3 0.02 264);
+  --destructive: oklch(0.577 0.245 27.325);
+  --border: oklch(0.88 0.01 264);
+  --input: oklch(0.88 0.01 264);
+  --ring: oklch(0.488 0.243 264.376);
+}
+
+/* ─── Dark Theme (aufgehellt, angenehmes Dunkelblau-Grau) ─────────────────── */
+.dark {
+  --background: oklch(0.24 0.02 264);
+  --foreground: oklch(0.94 0.01 264);
+  --card: oklch(0.29 0.022 264);
+  --card-foreground: oklch(0.94 0.01 264);
+  --popover: oklch(0.29 0.022 264);
+  --popover-foreground: oklch(0.94 0.01 264);
+  --primary: oklch(0.62 0.22 264.376);
+  --primary-foreground: oklch(0.1 0.01 264);
+  --secondary: oklch(0.34 0.022 264);
+  --secondary-foreground: oklch(0.88 0.01 264);
+  --muted: oklch(0.34 0.022 264);
+  --muted-foreground: oklch(0.68 0.02 264);
+  --accent: oklch(0.34 0.022 264);
+  --accent-foreground: oklch(0.88 0.01 264);
+  --destructive: oklch(0.65 0.22 27);
+  --border: oklch(0.38 0.022 264);
+  --input: oklch(0.38 0.022 264);
+  --ring: oklch(0.62 0.22 264.376);
+}
+
+/* ─── Base ─────────────────────────────────────────────────────────────────── */
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: "Source Sans 3", system-ui, sans-serif;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: "DM Sans", system-ui, sans-serif;
+  }
+}
+
+/* ─── Container ────────────────────────────────────────────────────────────── */
+.container {
+  @apply mx-auto px-4 sm:px-6;
+  max-width: 1280px;
+}
+
+/* ─── Flex defaults ────────────────────────────────────────────────────────── */
+.flex {
+  min-width: 0;
+  min-height: 0;
+}
+
+/* ─── Performance Cells ────────────────────────────────────────────────────── */
+.perf-positive {
+  color: oklch(0.44 0.16 145);
+  font-weight: 600;
+}
+.perf-negative {
+  color: oklch(0.52 0.22 27);
+  font-weight: 600;
+}
+.perf-neutral {
+  color: oklch(0.55 0.02 264);
+  font-weight: 500;
+}
+
+/* ─── Rank Badges ──────────────────────────────────────────────────────────── */
+.rank-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 700;
+  font-family: "DM Sans", sans-serif;
+}
+.rank-1 {
+  background: oklch(0.88 0.12 85);
+  color: oklch(0.42 0.12 85);
+}
+.rank-2 {
+  background: oklch(0.88 0.06 264);
+  color: oklch(0.42 0.08 264);
+}
+.rank-3 {
+  background: oklch(0.88 0.08 45);
+  color: oklch(0.46 0.1 45);
+}
+.rank-other {
+  background: oklch(0.94 0.01 264);
+  color: oklch(0.55 0.02 264);
+}
+
+/* ─── Momentum Bar ─────────────────────────────────────────────────────────── */
+.momentum-bar {
+  height: 6px;
+  background: oklch(0.93 0.01 264);
+  border-radius: 3px;
+  overflow: hidden;
+  min-width: 48px;
+}
+.momentum-bar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width 0.6s ease;
+}
+
+/* ─── Data Table ───────────────────────────────────────────────────────────── */
+.data-table tbody tr {
+  transition: background 0.12s ease;
+}
+.data-table tbody tr:hover {
+  background: oklch(0.97 0.005 264);
+}
+
+/* ─── Dark Mode Overrides ─────────────────────────────────────────────────── */
+.dark .data-table tbody tr:hover {
+  background: oklch(0.33 0.022 264);
+}
+.dark .momentum-bar {
+  background: oklch(0.38 0.02 264);
+}
+.dark .rank-1 { background: oklch(0.38 0.08 85); color: oklch(0.88 0.12 85); }
+.dark .rank-2 { background: oklch(0.36 0.06 264); color: oklch(0.86 0.1 264); }
+.dark .rank-3 { background: oklch(0.37 0.06 45); color: oklch(0.87 0.1 45); }
+.dark .rank-other { background: oklch(0.35 0.02 264); color: oklch(0.72 0.02 264); }
+
+/* ─── Animations ───────────────────────────────────────────────────────────── */
+@keyframes fade-in-up {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-fade-in-up {
+  animation: fade-in-up 0.3s ease both;
+}
