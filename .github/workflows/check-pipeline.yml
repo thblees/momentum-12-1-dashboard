@@ -1,0 +1,85 @@
+name: Check Data Pipeline Health
+
+on:
+  schedule:
+    # Täglich 10:00 UTC — prüft ob der nächtliche Run erfolgreich war
+    - cron: "0 10 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  actions: write
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Live-VIX abrufen und Alter prüfen
+        id: check
+        run: |
+          BODY=$(curl -sf https://thblees.github.io/momentum-12-1-dashboard/data/vix.json)
+          FETCHED_AT=$(echo "$BODY" | jq -r '.fetchedAt')
+          echo "fetchedAt=$FETCHED_AT" >> $GITHUB_OUTPUT
+
+          FETCHED_TS=$(date -d "$FETCHED_AT" +%s)
+          NOW_TS=$(date +%s)
+          AGE_HOURS=$(( (NOW_TS - FETCHED_TS) / 3600 ))
+          echo "age_hours=$AGE_HOURS" >> $GITHUB_OUTPUT
+
+          if [ "$AGE_HOURS" -gt 30 ]; then
+            echo "stale=true" >> $GITHUB_OUTPUT
+            echo "⚠️ Daten STALE — fetchedAt: $FETCHED_AT (${AGE_HOURS}h alt)"
+          else
+            echo "stale=false" >> $GITHUB_OUTPUT
+            echo "✅ Daten frisch — fetchedAt: $FETCHED_AT (${AGE_HOURS}h alt)"
+          fi
+
+      - name: Letzten update-data.yml Run prüfen
+        id: runs
+        run: |
+          RUNS=$(curl -sf \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/update-data.yml/runs?per_page=3")
+
+          LATEST_STATUS=$(echo "$RUNS" | jq -r '.workflow_runs[0].conclusion')
+          LATEST_ID=$(echo "$RUNS" | jq -r '.workflow_runs[0].id')
+          echo "latest_status=$LATEST_STATUS" >> $GITHUB_OUTPUT
+          echo "latest_id=$LATEST_ID" >> $GITHUB_OUTPUT
+          echo "Letzter Run #$LATEST_ID: $LATEST_STATUS"
+
+      - name: update-data.yml neu starten (wenn stale oder failure)
+        id: trigger
+        if: steps.check.outputs.stale == 'true' || steps.runs.outputs.latest_status == 'failure'
+        run: |
+          curl -sf -X POST \
+            -H "Authorization: Bearer ${{ github.token }}" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/repos/${{ github.repository }}/actions/workflows/update-data.yml/dispatches" \
+            -d '{"ref":"main"}'
+          echo "triggered=true" >> $GITHUB_OUTPUT
+          echo "🔄 update-data.yml manuell getriggert"
+
+      - name: Job-Summary schreiben
+        run: |
+          FETCHED_AT="${{ steps.check.outputs.fetchedAt }}"
+          AGE="${{ steps.check.outputs.age_hours }}"
+          STALE="${{ steps.check.outputs.stale }}"
+          RUN_STATUS="${{ steps.runs.outputs.latest_status }}"
+          RUN_ID="${{ steps.runs.outputs.latest_id }}"
+          TRIGGERED="${{ steps.trigger.outputs.triggered }}"
+
+          if [ "$STALE" = "true" ] || [ "$RUN_STATUS" = "failure" ]; then
+            {
+              echo "## ❌ Pipeline kaputt — Action neu gestartet"
+              echo "- **fetchedAt:** $FETCHED_AT (${AGE}h alt, Limit: 30h)"
+              echo "- **Letzter Run #$RUN_ID:** $RUN_STATUS"
+              echo "- **Maßnahme:** update-data.yml wurde neu getriggert"
+            } >> "$GITHUB_STEP_SUMMARY"
+          else
+            {
+              echo "## ✅ Pipeline ok"
+              echo "- **fetchedAt:** $FETCHED_AT (${AGE}h alt)"
+              echo "- **Letzter Run #$RUN_ID:** $RUN_STATUS"
+            } >> "$GITHUB_STEP_SUMMARY"
+          fi
