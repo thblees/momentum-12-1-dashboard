@@ -128,7 +128,7 @@ export default function StrategySection() {
                   Modell-Portfolio: 12‑1 Top‑3 Dual Momentum
                 </h2>
                 <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  23 handelbare ETFs (SPY, 11 global, 11 Sektoren) · Top 3 nach 12‑1‑Ranking · nur bei positivem 12M‑1 (sonst Cash) · Umschichtung am letzten Handelstag
+                  23 handelbare ETFs (SPY, 11 global, 11 Sektoren) · Top 3 nach 12‑1‑Ranking · nur bei positivem 12M‑1 (sonst Cash) · Hysterese: gehalten wird bis Rang 5 · Umschichtung am letzten Handelstag
                 </p>
               </div>
             </div>
@@ -137,6 +137,11 @@ export default function StrategySection() {
                 value={params.frequency}
                 options={[{ v: "monthly", label: "Monatlich" }, { v: "quarterly", label: "Quartalsweise" }]}
                 onChange={v => setParams(p => ({ ...p, frequency: v }))}
+              />
+              <Toggle<"on" | "off">
+                value={params.holdRank > 0 ? "on" : "off"}
+                options={[{ v: "on", label: "Hysterese (halten bis Rang 5)" }, { v: "off", label: "Strikt Top 3" }]}
+                onChange={v => setParams(p => ({ ...p, holdRank: v === "on" ? 5 : 0 }))}
               />
               <Toggle<"on" | "off">
                 value={params.absoluteFilter ? "on" : "off"}
@@ -339,7 +344,7 @@ export default function StrategySection() {
                 <div className="mt-3 grid grid-cols-1 md:grid-cols-3 gap-4 text-xs text-blue-700 dark:text-blue-400">
                   <div>
                     <p className="font-semibold mb-1">So entsteht das Portfolio</p>
-                    <p className="text-blue-600 dark:text-blue-500">Am letzten Handelstag der Periode wird das 12‑1‑Ranking über die 23 ETFs gebildet (SPY ist selbst Kandidat – in Phasen, in denen die US-Megacaps alles dominieren, hält die Strategie so einfach den Index). Die drei bestplatzierten Werte mit positivem 12M‑1 werden zu je einem Drittel gekauft. Gibt es weniger als drei, bleibt der Rest in Cash (Dual Momentum nach Antonacci). Wer schon im Depot ist und weiter unter den Top 3 steht, bleibt – so entstehen nur die nötigen Trades.</p>
+                    <p className="text-blue-600 dark:text-blue-500">Am letzten Handelstag der Periode wird das 12‑1‑Ranking über die 23 ETFs gebildet (SPY ist selbst Kandidat – in Phasen, in denen die US-Megacaps alles dominieren, hält die Strategie so einfach den Index). Die drei bestplatzierten Werte mit positivem 12M‑1 werden zu je einem Drittel gekauft. Gibt es weniger als drei, bleibt der Rest in Cash (Dual Momentum nach Antonacci). Hysterese: Wer schon im Depot ist, bleibt, solange er noch unter den Top 5 steht und den Filter besteht – verkauft wird erst, wenn eine Position wirklich abrutscht. Das vermeidet Trades, die nur durch Rangwackeln um Platz 3/4 entstehen. Mit „Strikt Top 3" siehst du die Variante ohne Hysterese.</p>
                   </div>
                   <div>
                     <p className="font-semibold mb-1">Kein gespeichertes Depot</p>
