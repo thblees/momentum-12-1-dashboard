@@ -18,6 +18,8 @@ import {
 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { useTheme } from "@/contexts/ThemeContext";
+import StrategySection from "@/components/StrategySection";
+import { Briefcase } from "lucide-react";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -1290,6 +1292,7 @@ function NavBar() {
 
           <nav className="hidden sm:flex items-center gap-1">
             {[
+              { id: "strategie", label: "Strategie", icon: <Briefcase size={13} />, color: "text-amber-600 bg-amber-50 hover:bg-amber-100" },
               { id: "indizes", label: "Indizes", icon: <BarChart2 size={13} />, color: "text-blue-600 bg-blue-50 hover:bg-blue-100" },
               { id: "global", label: "Globale Märkte", icon: <Globe size={13} />, color: "text-emerald-600 bg-emerald-50 hover:bg-emerald-100" },
               { id: "sektoren", label: "Sektor-ETFs", icon: <PieChart size={13} />, color: "text-violet-600 bg-violet-50 hover:bg-violet-100" },
@@ -1354,7 +1357,7 @@ function Hero() {
             meine-geldseite.de Momentum-Tracker 12‑1
           </h1>
           <p className="text-slate-500 dark:text-slate-400 text-sm">
-            Relative Stärke über 12 Monate – ohne die letzten 4 Wochen · Markt-Indizes · Globale Märkte · Sektor-ETFs
+            Relative Stärke über 12 Monate – ohne die letzten 4 Wochen · Modell-Portfolio · Markt-Indizes · Globale Märkte · Sektor-ETFs
           </p>
         </div>
         <div className="hidden sm:flex flex-col items-end gap-1">
@@ -1374,6 +1377,7 @@ function Hero() {
           { label: "16 Markt-Indizes", color: "bg-blue-50 text-blue-600 border-blue-100" },
           { label: "11 Globale ETFs", color: "bg-emerald-50 text-emerald-600 border-emerald-100" },
           { label: "11 Sektor-ETFs", color: "bg-violet-50 text-violet-600 border-violet-100" },
+          { label: "Modell-Portfolio Top 3", color: "bg-amber-50 text-amber-600 border-amber-100" },
         ].map(chip => (
           <span
             key={chip.label}
@@ -1397,6 +1401,7 @@ export default function Home() {
         <Hero />
         <VixWidget />
         <MethodologyBox />
+        <StrategySection />
         <IndexSection />
         <GlobalSection />
         <EtfSection />
