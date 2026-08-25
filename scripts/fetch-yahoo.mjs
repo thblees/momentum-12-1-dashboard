@@ -17,6 +17,12 @@ const SECTORS = [
 ];
 const ALL = Array.from(new Set([...INDICES, ...GLOBAL_MARKETS, ...SECTORS]));
 
+// Strategie-Universum (12-1 Top-3): nur handelbare ETFs + SPY als Benchmark.
+// SPY ist zugleich Benchmark und Kandidat (haelt in Megacap-Phasen den Index).
+// Fuer den Backtest werden 10 Jahre Historie MIT Datum geladen.
+const STRATEGY_UNIVERSE = ["SPY", ...GLOBAL_MARKETS, ...SECTORS];
+const STRATEGY_BENCHMARK = "SPY";
+
 const OUT_DIR = path.resolve("client/public/data");
 mkdirSync(OUT_DIR, { recursive: true });
 
@@ -35,6 +41,26 @@ async function fetchChart(ticker, range) {
   const closes = json?.chart?.result?.[0]?.indicators?.quote?.[0]?.close;
   if (!Array.isArray(closes)) throw new Error("no close array");
   return closes.filter((v) => v !== null && v !== undefined);
+}
+
+async function fetchChartDated(ticker, range) {
+  const url = `https://query1.finance.yahoo.com/v8/finance/chart/${encodeURIComponent(ticker)}?interval=1d&range=${range}&includePrePost=false`;
+  const res = await fetch(url, { headers: HEADERS });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+  const json = await res.json();
+  const r = json?.chart?.result?.[0];
+  const ts = r?.timestamp;
+  const closes = r?.indicators?.quote?.[0]?.close;
+  if (!Array.isArray(ts) || !Array.isArray(closes)) throw new Error("no timestamp/close array");
+  const out = new Map();
+  for (let i = 0; i < ts.length; i++) {
+    const c = closes[i];
+    if (c === null || c === undefined) continue;
+    // Handelstag als YYYY-MM-DD (New Yorker Boerse; UTC-Datum reicht fuer Tagesdaten)
+    const d = new Date(ts[i] * 1000).toISOString().slice(0, 10);
+    out.set(d, c);
+  }
+  return out;
 }
 
 async function withRetry(fn, retries = 3, delayMs = 800) {
@@ -72,6 +98,35 @@ async function main() {
     path.join(OUT_DIR, "prices.json"),
     JSON.stringify({ prices, fetchedAt: now })
   );
+
+  // Strategie-Daten (5y, mit Datum, auf die Handelstage von SPY ausgerichtet)
+  try {
+    const tickers = Array.from(new Set([STRATEGY_BENCHMARK, ...STRATEGY_UNIVERSE]));
+    const series = {};
+    for (const t of tickers) {
+      series[t] = await withRetry(() => fetchChartDated(t, "10y"));
+      process.stdout.write(`+`);
+    }
+    process.stdout.write(`\n`);
+    const dates = Array.from(series[STRATEGY_BENCHMARK].keys()).sort();
+    const closes = {};
+    for (const t of tickers) {
+      const arr = [];
+      let last = null;
+      for (const d of dates) {
+        const v = series[t].get(d);
+        if (v !== undefined) last = v;
+        arr.push(last);
+      }
+      closes[t] = arr;
+    }
+    writeFileSync(
+      path.join(OUT_DIR, "strategy.json"),
+      JSON.stringify({ dates, closes, benchmark: STRATEGY_BENCHMARK, universe: STRATEGY_UNIVERSE, fetchedAt: now })
+    );
+  } catch (err) {
+    console.error(`strategy.json failed: ${err.message}`);
+  }
 
   // VIX
   let vixOut;
