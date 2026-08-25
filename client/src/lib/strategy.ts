@@ -8,6 +8,9 @@
  *  - Absolut-Momentum-Filter (Antonacci): nur Werte mit 12M-1 > 0 werden gekauft,
  *    freie Slots bleiben in Cash.
  *  - Umschichtung am letzten Handelstag jedes Monats bzw. Quartals (Schlusskurs).
+ *  - Hysterese (optional): eine gehaltene Position wird erst verkauft, wenn sie
+ *    unter Rang `holdRank` fällt oder den Absolut-Filter verletzt. Das reduziert
+ *    Trades, die nur durch Rangwackeln um Platz 3/4 entstehen.
  *  - Gleichgewichtung, keine Kosten/Steuern im Backtest.
  *
  * Alles wird deterministisch aus der Kurshistorie berechnet – es muss nirgends
@@ -28,9 +31,10 @@ export type StrategyParams = {
   topN: number;
   frequency: Frequency;
   absoluteFilter: boolean;
+  holdRank: number;      // 0 = keine Hysterese; sonst: halten solange Rang <= holdRank
 };
 
-export const DEFAULT_PARAMS: StrategyParams = { topN: 3, frequency: "monthly", absoluteFilter: true };
+export const DEFAULT_PARAMS: StrategyParams = { topN: 3, frequency: "monthly", absoluteFilter: true, holdRank: 5 };
 
 const SKIP = 20;
 const WINDOWS = { m3: 63, m6: 126, m12: 252 } as const;
@@ -92,10 +96,24 @@ export function rankAt(file: StrategyFile, end: number, absoluteFilter: boolean)
     .map((x, i) => ({ ...x, rank: i + 1 }));
 }
 
-/** Auswahl: die ersten topN Werte des Rankings, die den Filter bestehen. */
-export function selectAt(file: StrategyFile, end: number, params: StrategyParams): { rows: RankRow[]; picks: string[] } {
+/**
+ * Auswahl zum Stichtag. Ohne Hysterese: die ersten topN Werte, die den Filter bestehen.
+ * Mit Hysterese: bisherige Positionen bleiben, solange Rang <= holdRank und Filter ok;
+ * freie Slots werden mit den bestplatzierten neuen Kandidaten aufgefüllt.
+ */
+export function selectAt(file: StrategyFile, end: number, params: StrategyParams, current: string[] = []): { rows: RankRow[]; picks: string[] } {
   const rows = rankAt(file, end, params.absoluteFilter);
-  const picks = rows.filter(r => r.eligible).slice(0, params.topN).map(r => r.ticker);
+  const rankOf = (t: string) => rows.find(r => r.ticker === t);
+  const kept = params.holdRank > 0
+    ? current.filter(t => { const r = rankOf(t); return r && r.eligible && r.rank <= params.holdRank; })
+    : [];
+  const picks = [...kept];
+  for (const r of rows) {
+    if (picks.length >= params.topN) break;
+    if (r.eligible && !picks.includes(r.ticker)) picks.push(r.ticker);
+  }
+  // Reihenfolge nach Rang, damit die Anzeige stabil bleibt
+  picks.sort((a, b) => (rankOf(a)?.rank ?? 99) - (rankOf(b)?.rank ?? 99));
   return { rows, picks };
 }
 
@@ -244,7 +262,7 @@ export function runStrategy(file: StrategyFile, params: StrategyParams): Strateg
         history[history.length - 1].periodReturn = (equity / periodStartEquity - 1) * 100;
         history[history.length - 1].benchmarkReturn = (closes[benchmark][i]! / periodStartBench - 1) * 100;
       }
-      const sel = selectAt(file, i, params);
+      const sel = selectAt(file, i, params, picks);
       const tr = diffTrades(picks, sel.picks);
       trades += tr.filter(t => t.action !== "hold").length;
       const newEntry: Record<string, number> = {};
@@ -292,7 +310,7 @@ export function runStrategy(file: StrategyFile, params: StrategyParams): Strateg
   });
 
   // ── Vorschau auf den nächsten Stichtag ────────────────────────────────────
-  const preview = selectAt(file, asOf, params);
+  const preview = selectAt(file, asOf, params, picks);
   const previewTrades = diffTrades(picks, preview.picks);
   const nextEnd = endOfPeriod(dates[asOf], params.frequency);
   const today = new Date(dates[asOf] + "T00:00:00Z");
