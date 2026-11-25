@@ -41,7 +41,7 @@ jobs:
             echo "No data changes."
           else
             git commit -m "chore: daily Yahoo Finance data update"
-            git pull --rebase origin main
+           git pull --rebase -X theirs origin main
             git push
           fi
 
